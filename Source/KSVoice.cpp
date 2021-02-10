@@ -37,7 +37,7 @@ void KSVoice::stopNote(float velocity, bool allowTailOff)
     if (allowTailOff)
     {
         tailoff = true;
-        lastTailoffIdx = (bufIdx + (int)(t60 * getSampleRate())) % bufferSize;
+        lastTailoffIdx = (bufIdx + (int)(params.t60 * getSampleRate())) % bufferSize;
     }
 
     else
@@ -58,9 +58,9 @@ void KSVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startS
         int lowpassIdx2 = (bufIdx + bufferSize - (period + 1)) % bufferSize;
 
 
-        float rhoToUse = tailoff ? rhoTailoff : rho;
+        float rhoToUse = tailoff ? rhoTailoff : params.rho;
         // lowpass + delay
-        float plucked = excitation[bufIdx] + rhoToUse * ((1 - S) * lowpassDelayBuffer[lowpassIdx1] + S * lowpassDelayBuffer[lowpassIdx2]);
+        float plucked = excitation[bufIdx] + rhoToUse * ((1 - params.S) * lowpassDelayBuffer[lowpassIdx1] + params.S * lowpassDelayBuffer[lowpassIdx2]);
         
         // only read out excitation once
         excitation[bufIdx] = 0;
@@ -108,18 +108,18 @@ void KSVoice::calculatePitchInfo(int midiNote, int pitchWheelPosition)
     currentNote = midiNote;
 
     // frequency taking into account pitch bend
-    float freq = 440 * std::pow(2, (midiNote - 69) / 12.f + (pitchWheelPosition - 8192) / (12.f * 16384 / (2 * pitchBendSemitones)));
+    float freq = 440 * std::pow(2, (midiNote - 69) / 12.f + (pitchWheelPosition - 8192) / (12.f * 16384 / (2 * params.pitchBendSemitones)));
     
     float fs = getSampleRate();
     float omegaNorm = juce::MathConstants<float>::twoPi * freq / fs; // normalized angular frequency
 
     //eq 22
-    float lowpassPhaseDelay = -std::atan(-S * std::sin(omegaNorm) / ((1 - S) + S * std::cos(omegaNorm))) / omegaNorm;
+    float lowpassPhaseDelay = -std::atan(-params.S * std::sin(omegaNorm) / ((1 - params.S) + params.S * std::cos(omegaNorm))) / omegaNorm;
 
     float truePeriod = fs / freq; // unit: samples
     period = (int)(truePeriod - lowpassPhaseDelay - 1e-6);
 
-    float tau = t60 / std::log(1000);
+    float tau = params.t60 / std::log(1000);
     rhoTailoff = std::exp(-1 / (freq * tau)) / std::abs(std::cos(omegaNorm / 2));
 
     float allpassPhaseDelay = truePeriod - period - lowpassPhaseDelay;
@@ -128,7 +128,7 @@ void KSVoice::calculatePitchInfo(int midiNote, int pitchWheelPosition)
     allpassTuningC = std::sin(0.5 * omegaNorm - 0.5 * omegaNorm * allpassPhaseDelay)
         / std::sin(0.5 * omegaNorm + 0.5 * omegaNorm * allpassPhaseDelay);
 
-    float R_L = std::exp(-juce::MathConstants<float>::pi * L / fs);
+    float R_L = std::exp(-juce::MathConstants<float>::pi * params.L / fs);
     float G_L = (1 - R_L) / (std::abs(1.f - std::polar<float>(R_L, -middlePitchOmega / fs)));
 
     R = (1 - G_L * G_L * std::cos(omegaNorm)) / (1 - G_L * G_L);
@@ -148,13 +148,13 @@ void KSVoice::createExcitation(float velocity)
     juce::Array<float> noise;
 
     noise.resize(bufferSize); // wasting memory for indexing convenience
-    for (int i = 0; i < period * pizzicatoFactor; i++)
+    for (int i = 0; i < period * params.pickStrengthFactor; i++)
         noise.set(i, velocity * rand.nextFloat());
 
     for (int i = 0; i < bufferSize; i++)
     {
         // pick location filter
-        int prevIdx = i - (int)(mu * period);
+        int prevIdx = i - (int)(params.mu * period);
         float prevVal = prevIdx < 0 ? 0 : noise[prevIdx];
         excitation[i] = noise[i] - prevVal;
     }

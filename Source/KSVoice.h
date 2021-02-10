@@ -20,10 +20,21 @@ struct KSSound : public juce::SynthesiserSound
     bool appliesToChannel(int) override { return true; }
 };
 
+struct KPStrongParams
+{
+    float L = 400;
+    float rho = 0.99;
+    float S = 0.5;
+    float mu = 0.1;
+    float t60 = 0.1;
+    int pitchBendSemitones = 12;
+    float pickStrengthFactor = 1.f;
+};
+
 class KSVoice : public juce::SynthesiserVoice
 {
 public:
-    KSVoice() {};
+    KSVoice(struct KPStrongParams& params) : params(params) {};
     ~KSVoice() {};
 
     void startNote(int midiNote, float velocity, juce::SynthesiserSound*, int currentPitchWheelPosition) override;
@@ -37,6 +48,8 @@ public:
     void controllerMoved(int controllerNumber, int newControllerValue) override {};
 
 private:
+
+    struct KPStrongParams& params;
 
     juce::Random rand;
 
@@ -60,25 +73,12 @@ private:
 
     float R;
 
-    float L = 1000;
-
-    float rho = 0.99;
-
     float rhoTailoff;
 
-    float t60 = 0.2; // tailoff length in seconds
     int lastTailoffIdx;
-
-    float S = 0.5;
-
-    float mu = 1.f/7;
 
     bool playing = false;
     bool tailoff = false;
-
-    int pitchBendSemitones = 12;
-
-    float pizzicatoFactor = 10;
 
     float allpassTuningC;
 

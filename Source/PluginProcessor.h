@@ -54,10 +54,19 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    void setL(float L) { params.L = L; };
+    void setRho(float rho) { params.rho = rho; };
+    void setS(float S) { params.S = S; };
+    void setMu(float mu) { params.mu = mu; };
+    void setT60(float t60) { params.t60 = t60; };
+    void setPitchBend(int semitones) { params.pitchBendSemitones = semitones; };
+    void setPickStrength(float pickstrength) { params.pickStrengthFactor = pickstrength; };
+
 private:
     //==============================================================================
 
     juce::Synthesiser synth;
+    struct KPStrongParams params;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (KarplusStrongAudioProcessor)
 };

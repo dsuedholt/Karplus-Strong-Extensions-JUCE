@@ -23,8 +23,10 @@ KarplusStrongAudioProcessor::KarplusStrongAudioProcessor()
 #endif
 {
     synth.addSound(new KSSound());
+
+    // all using the same set of parameters
     for (int i = 0; i < 10; i++)
-        synth.addVoice(new KSVoice());
+        synth.addVoice(new KSVoice(params));
 }
 
 KarplusStrongAudioProcessor::~KarplusStrongAudioProcessor()
